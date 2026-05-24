@@ -46,6 +46,8 @@ from .models import (
     KeepaliveRequest,
     LeaveConversationRequest,
     MessageEvent,
+    MessageMedia,
+    MessageMediaRequest,
     ModerateRoomRequest,
     MoveUserToRoomRequest,
     Position,
@@ -515,15 +517,16 @@ class Highrise:
         self,
         conversation_id: str,
         content: str,
-        message_type: Literal["text", "invite"] = "text",
+        message_type: Literal["text", "invite", "media"] = "text",
         room_id: str | None = None,
         world_id: str | None = None,
+        media_id: str | None = None,
     ) -> None | Error:
         """Send a message to conversation."""
         res = await do_req_resp(
             self,
             SendMessageRequest(
-                conversation_id, content, message_type, room_id, world_id
+                conversation_id, content, message_type, room_id, world_id, media_id
             ),
         )
         if isinstance(res, Error):
@@ -629,6 +632,15 @@ class Highrise:
             return resp
         return resp.result
 
+    async def message_media_upload(
+        self, media: MessageMedia
+    ) -> tuple[MessageMedia, str, str] | Error:
+        """Upload a message media."""
+        resp = await do_req_resp(self, MessageMediaRequest(media))
+        if isinstance(resp, Error):
+            return resp
+        return resp.media, resp.uploadUrl, resp.thumbnailUploadUrl
+
     def call_in(self, callback: Callable, delay: float) -> None:
         self.tg.create_task(_delayed_callback(callback, delay))
 
@@ -709,6 +721,7 @@ Outgoing = (
     | GetInventoryRequest
     | BuyItemRequest
     | SendBulkMessageRequest
+    | MessageMediaRequest
 )
 IncomingEvents = (
     Error
